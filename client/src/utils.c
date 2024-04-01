@@ -16,23 +16,33 @@ void* serializar_paquete(t_paquete* paquete, int bytes)
 	return magic;
 }
 
-int crear_conexion(char *ip, char* puerto)
+int crear_conexion(char *ip, char* puerto, t_log* logger)
 {
 	struct addrinfo hints;
 	struct addrinfo *server_info;
 
 	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = AF_INET;
+	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
 
 	getaddrinfo(ip, puerto, &hints, &server_info);
 
 	// Ahora vamos a crear el socket.
-	int socket_cliente = 0;
+	int socket_cliente = socket(server_info->ai_family, server_info->ai_socktype, server_info->ai_protocol);
+	if (socket_cliente == -1)
+	{
+		log_info(logger, "Hubo un error al crear el socket");
+		exit(-1);
+	}
 
 	// Ahora que tenemos el socket, vamos a conectarlo
-
+	int failed = connect(socket_cliente, server_info->ai_addr, server_info->ai_addrlen); // failed = 0 si no hubo error; failed = -1 si hubo error.
+	if (failed == -1)
+	{
+		log_info(logger, "Hubo un error al conectarse con el servidor");
+		exit(-1);
+	}
 
 	freeaddrinfo(server_info);
 
@@ -105,4 +115,9 @@ void eliminar_paquete(t_paquete* paquete)
 void liberar_conexion(int socket_cliente)
 {
 	close(socket_cliente);
+}
+
+bool is_empty_string(char* str)
+{
+	return *str == '\0';
 }
